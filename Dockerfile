@@ -5,7 +5,10 @@ WORKDIR /app
 # System dependencies
 RUN apt-get update && apt-get install -y gcc g++ curl && rm -rf /var/lib/apt/lists/*
 
-# Install CPU-only torch first (much smaller than default ~2GB GPU version)
+# Pin numpy first to avoid conflicts
+RUN pip install --no-cache-dir "numpy==1.26.4"
+
+# Install CPU-only torch (much smaller than GPU version)
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # Install remaining dependencies
