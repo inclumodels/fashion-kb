@@ -42,6 +42,6 @@ RSS_FEEDS = [
     "https://news.google.com/rss/search?q=fashion+trends&hl=en-US&gl=US&ceid=US:en",
 ]
 
-# API
+# API — Railway injects PORT env var
 API_HOST = "0.0.0.0"
-API_PORT = 8000
+API_PORT = int(os.getenv("PORT", 8000))
