@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Admin — Fashion KB</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0d0d0d;color:#e8e8e8;font-family:'Segoe UI',sans-serif;padding:32px}
+    h1{font-size:18px;margin-bottom:24px;color:#fff}
+    h2{font-size:14px;color:#888;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px}
+    .card{background:#161616;border:1px solid #252525;border-radius:10px;padding:20px}
+    .card .val{font-size:28px;font-weight:700;margin-top:4px}
+    .card .lbl{font-size:12px;color:#666}
+    .section{margin-bottom:32px}
+    input,textarea{width:100%;background:#111;border:1px solid #2a2a2a;border-radius:8px;
+      padding:10px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:10px}
+    button{padding:10px 20px;background:#fff;color:#000;border:none;border-radius:8px;
+      font-size:13px;font-weight:600;cursor:pointer;margin-right:8px}
+    button.sec{background:#1e1e1e;color:#fff;border:1px solid #333}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{text-align:left;padding:8px 12px;color:#555;border-bottom:1px solid #1e1e1e}
+    td{padding:8px 12px;border-bottom:1px solid #181818;color:#aaa;max-width:300px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+    .scraped{background:#1a3a2a;color:#4caf88}
+    .image{background:#1a2a3a;color:#4a9eff}
+    .webpage{background:#2a2a1a;color:#e0b84a}
+    .user_query{background:#2a1a2a;color:#c084fc}
+    .conversation{background:#1a1a2a;color:#818cf8}
+    .user_image{background:#2a1a1a;color:#f87171}
+    #toast{position:fixed;bottom:20px;right:20px;background:#222;border:1px solid #444;
+      border-radius:8px;padding:12px 18px;font-size:13px;opacity:0;transition:opacity .3s}
+    #toast.show{opacity:1}
+  </style>
+</head>
+<body>
+<h1>Fashion KB — Admin</h1>
+
+<div class="grid" id="stats-grid">
+  <div class="card"><div class="lbl">Total Docs</div><div class="val" id="s-total">—</div></div>
+  <div class="card"><div class="lbl">Scraped</div><div class="val" id="s-scraped">—</div></div>
+  <div class="card"><div class="lbl">Conversations</div><div class="val" id="s-conv">—</div></div>
+  <div class="card"><div class="lbl">User Queries</div><div class="val" id="s-queries">—</div></div>
+</div>
+
+<div class="section">
+  <h2>Scraper</h2>
+  <button onclick="scrape()">Run Scraper Now</button>
+  <button class="sec" onclick="loadStats()">Refresh Stats</button>
+  <p id="scrape-result" style="margin-top:10px;font-size:13px;color:#666"></p>
+</div>
+
+<div class="section">
+  <h2>Ingest Web Page</h2>
+  <input type="url" id="ingest-url" placeholder="https://www.vogue.com/article/..."/>
+  <button onclick="ingestUrl()">Ingest</button>
+</div>
+
+<div class="section">
+  <h2>Recent Documents</h2>
+  <table>
+    <thead><tr><th>Type</th><th>Content</th><th>Source</th><th>Created</th></tr></thead>
+    <tbody id="recent-tbody"></tbody>
+  </table>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+    ? 'http://localhost:8000'
+    : 'https://fashion-kb-api-production.up.railway.app';
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 3000);
+  }
+
+  async function loadStats() {
+    const [s, r] = await Promise.all([
+      fetch(API+'/db/stats').then(x=>x.json()),
+      fetch(API+'/db/recent').then(x=>x.json()),
+    ]);
+    document.getElementById('s-total').textContent   = s.total || 0;
+    document.getElementById('s-scraped').textContent = s.by_type?.scraped || 0;
+    document.getElementById('s-conv').textContent    = s.by_type?.conversation || 0;
+    document.getElementById('s-queries').textContent = s.by_type?.user_query || 0;
+
+    document.getElementById('recent-tbody').innerHTML = (r.records||[]).map(rec=>`
+      <tr>
+        <td><span class="badge ${rec.source_type}">${rec.source_type}</span></td>
+        <td>${(rec.content_text||'').slice(0,80)}...</td>
+        <td><a href="${rec.source_url||'#'}" target="_blank" style="color:#60a5fa">${(rec.source_url||'—').slice(0,50)}</a></td>
+        <td>${(rec.created_at||'').slice(0,19).replace('T',' ')}</td>
+      </tr>`).join('');
+  }
+
+  async function scrape() {
+    document.getElementById('scrape-result').textContent = 'Running...';
+    const r = await fetch(API+'/ingest/scrape-now', {method:'POST'}).then(x=>x.json());
+    const s = r.summary;
+    document.getElementById('scrape-result').textContent =
+      `Done — added: ${s.added}, skipped: ${s.skipped}, errors: ${s.errors}`;
+    loadStats();
+  }
+
+  async function ingestUrl() {
+    const url = document.getElementById('ingest-url').value.trim();
+    if (!url) return;
+    toast('Ingesting...');
+    const r = await fetch(API+'/ingest/url', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({url})
+    }).then(x=>x.json());
+    toast(`Stored ${r.chunks_stored} chunks`);
+    document.getElementById('ingest-url').value = '';
+    loadStats();
+  }
+
+  loadStats();
+</script>
+</body>
+</html>

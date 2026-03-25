@@ -1,0 +1,34 @@
+# Embeddings
+sentence-transformers==3.0.1
+torch>=2.0.0
+torchvision>=0.15.0
+Pillow==10.4.0
+
+# Vector DB
+lancedb==0.13.0
+pyarrow>=17.0.0
+
+# Web scraping
+requests==2.32.3
+beautifulsoup4==4.12.3
+feedparser==6.0.11
+
+# Text chunking
+langchain-text-splitters==0.2.4
+
+# API
+fastapi==0.115.0
+uvicorn==0.30.6
+python-multipart==0.0.9
+httpx==0.27.2
+
+# Scheduler
+apscheduler==3.10.4
+
+# LLM
+groq==0.11.0
+
+# Utils
+python-dotenv==1.0.1
+pydantic==2.8.2
+pandas==2.2.2
