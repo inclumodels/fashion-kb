@@ -1,7 +1,5 @@
 # Embeddings
 sentence-transformers==3.0.1
-torch>=2.0.0
-torchvision>=0.15.0
 Pillow==10.4.0
 
 # Vector DB
